@@ -5,16 +5,19 @@ namespace App\Controllers;
 
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
+use App\Middleware\SessionMiddleware;
 use Slim\Views\Twig;
 use PDO;
 
 class ProductController {
     private PDO $db;
     private Twig $view;
+    private array $token;
 
-    public function __construct(PDO $db, Twig $view) {
+    public function __construct(PDO $db, Twig $view, array $token) {
         $this->db = $db;
         $this->view = $view;
+        $this->token = $token;
     }
 
     public function getAll(Request $request, Response $response, $args) {
@@ -29,7 +32,6 @@ class ProductController {
         $category = $queryParams['category'] ?? null;
         $sortOrder = $queryParams['order'] ?? null;
 
-        print_r($queryParams);
         if (!$category) {
             return $this->view->render($response->withStatus(404), 'error_not_found.twig', ['message' => 'Product not found']);
         }
@@ -49,6 +51,11 @@ class ProductController {
     }
 
     public function create(Request $request, Response $response, $args) {
+        print_r($this->token);
+        if ($this->token['userId'] == NULL) {
+            return $this->view->render($response->withStatus(401), 'error_not_found.twig', ['message' => 'User is not authenticated!']);
+        }
+
         $data = $request->getParsedBody();
     
         $name = $data['name'];
@@ -58,6 +65,13 @@ class ProductController {
         $description = $data['description'];
         $price = floatVal($data['price']);
         $discount = floatVal($data['discount']);
+
+        $sql = 'SELECT * FROM products WHERE name = ?';
+        $sql .=  $name;
+
+        if ($sql) {
+            return $this->view->render($response->withStatus(422), 'error_not_found.twig', ['message' => 'Product already exists!']);
+        } 
     
         $stmt = $this->db->prepare('INSERT INTO products (name, category, photoUrl, quantity, description, price, discount) VALUES (?, ?, ?, ?, ?, ?, ?)');
         

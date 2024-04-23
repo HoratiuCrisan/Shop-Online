@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login Query Error</title>
+</head>
+<body>
+    <h1>Login Query Error</h1>
+    <p style="color: red;">{{ error }}</p>
+    <p>Username attempted: {{ username }}</p>
+    <p>Password attempted: {{ password }}</p>
+    
+    {% if queryResult is not empty %}
+    <p>Query Result:</p>
+    <ul>
+        {% for row in queryResult %}
+            <li>{{ row }}</li>
+        {% endfor %}
+    </ul>
+    {% else %}
+    <p>No data returned by the query.</p>
+    {% endif %}
+    
+    <p>Please check your username and password and try again.</p>
+</body>
+</html>
