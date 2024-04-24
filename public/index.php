@@ -7,13 +7,17 @@ use Slim\Views\TwigMiddleware;
 use App\Controllers\HomeController;
 use App\Controllers\ProductController;
 use App\Controllers\UserController;
+use App\Controllers\OrderController;
+use App\Controllers\CartController;
 use App\Middleware\SessionMiddleware;
 
 require __DIR__ . '/../vendor/autoload.php';
 require __DIR__ . '/../src/Controllers/HomeController.php';
 require __DIR__ . '/../src/Controllers/ProductController.php';
-require __DIR__ . '/../src/Controllers/UserController.php'; // Include UserController
+require __DIR__ . '/../src/Controllers/UserController.php';
 require __DIR__ . '/../src/Middleware/SessionMiddleware.php';
+require __DIR__ . '/../src/Controllers/OrderController.php';
+require __DIR__ . '/../src/Controllers/CartController.php';
 $dbConfig = require __DIR__ . '/../config/db_config.php';
 
 $hostname = $dbConfig['host'];
@@ -40,23 +44,38 @@ try {
     $app->post('/register', [$userController, 'createUser']); // Route for user register
     $app->post('/logout', [$userController, 'logout']); // Route for user logout
     $app->get('/users', [$userController, 'getAll']); // Route to get all users
-    $app->put('/users/{username}', [$userController, 'updateUser']); // Route to update an existing user
-    $app->delete('/users/{username}', [$userController, 'deleteUser']); // Route to delete an existing user
+    $app->get('/users/{username}', [$userController, 'getUserByUsername']);
+    $app->put('/users/{id}', [$userController, 'updateUserById']);
+    $app->delete('/users/{username}', [$userController, 'deleteUserByUsername']);
 
-    $sessionData = $_SESSION;
+    $productController = new ProductController($db, $twig, $_SESSION);
 
-    $productController = new ProductController($db, $twig, $sessionData);
-
+    // Products routes
     $app->get('/products', [$productController, 'getAll']);
-    $app->get('/filtered-products', [$productController, 'getByCategory']);
+    $app->get('/product/sortByQuery', [$productController, 'getByCategory']);
     $app->post('/products', [$productController, 'create']);
     $app->put('/products/{productId}', [$productController, 'update']);
     $app->delete('/products/{productId}', [$productController, 'delete']);
 
+    $orderController = new OrderController($db, $twig, $_SESSION);
+    // Orders routes
+    $app->get('/orders', [$orderController, 'getOrders']);
+    $app->get('/orders/{user_Id}', [$orderController, 'getByUserId']);
+    $app->post('/orders', [$orderController, 'createOrder']);
+    $app->put('/orders/{orderId}', [$orderController, 'updateOrder']);
+    $app->delete('/orders/{orderId}', [$orderController, 'deleteOrder']);
+
+    $cartController = new CartController($db, $twig, $_SESSION);
+    $app->post('/users/{username}/shopping_cart', [$cartController, 'createCartbyUser']);
+    $app->post('/users/{username}/shopping_cart/{productId}', [$cartController, 'addItemToShoppingCart']);
+    $app->delete('/users/{username}/shopping_cart/{productId}', [$cartController, 'deleteItemFromShoppingCart']);
+    $app->get('/users/{username}/shopping_cart', [$cartController, 'getShoppingCart']);
+    $app->get('/all_carts', [$cartController, 'getAllShoppingCarts']);
     $app->add(TwigMiddleware::create($app, $twig));
 
     $app->run();
 } catch (PDOException $e) {
     echo 'Connection failed: ' . $e->getMessage();
 }
+
 ?>
